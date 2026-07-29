@@ -8,10 +8,14 @@ argument-hint: run | resume | status
 
 State model: NO database. A stage is COMPLETE iff its output artifact
 exists in the handoffs dir, opens with the stage agent's exact
-attestation, and passes `guards.min_bytes`. A stage is IN-FLIGHT iff a
-run-manifest exists in `council.run_dir` without a complete artifact.
-Everything is re-derived from disk on every invocation — idempotent by
-construction; a crashed session loses nothing.
+attestation, passes `guards.min_bytes`, AND its run is exit-verified:
+the manifest's sibling exit-code file records 0 (the dispatch wrapper
+captures it — see Dispatch), or the stage's `output_mode` guarantees
+atomic write (temp-file + rename). Existence + attestation + size
+alone is race-prone against streaming writers. A stage is IN-FLIGHT
+iff a run-manifest exists in `council.run_dir` without exit-verified
+completion. Everything is re-derived from disk on every invocation —
+idempotent by construction; a crashed session loses nothing.
 
 ## `status`
 
@@ -38,8 +42,13 @@ with artifact paths. Read-only.
      contract as dispatch-review).
    - `agent` stages: run the agent's `cli` template `setsid`-wrapped as
      a detached background Bash command (survives this session; next
-     resume harvests it). Write the run-manifest JSON first: {stage,
-     cycle, cmd, expected_output, started_at, pid}.
+     resume harvests it), capturing the exit code:
+     `setsid sh -c '<cmd>; echo $? > <manifest>.exit' &`. For
+     `output_mode = "stdout_redirect"` runners, redirect to a temp file
+     and `mv` into place on success (atomic) rather than streaming to
+     the final path. Write the run-manifest JSON first: {stage, cycle,
+     cmd, expected_output, output_mode, started_at, pid,
+     timeout_sec}.
    - `shell` stages: run the `command` template (foreground if quick,
      background if long) — these are the project's own ingest/gate
      steps living in the same DAG.

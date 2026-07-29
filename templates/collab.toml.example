@@ -25,7 +25,9 @@ attestation = "Author: Claude Code (implementer)"
 [agents.reviewer]                     # isolated subagent tier (same harness)
 role        = "reviewer"
 token       = "reviewer"
-attestation = "Author: Claude Reviewer (subagent)"
+attestation = "Author: Claude Reviewer (subagent {run_id})"   # per-run marker REQUIRED
+                                      # (protocol §3: a role label alone is identity
+                                      # theater; the marker binds artifact → dispatch)
 
 [agents.codex]                        # cross-vendor reviewer (optional)
 role        = "reviewer"
@@ -60,23 +62,40 @@ escalate = ["governance", "schema", "risk"]
 [council]
 run_dir = "ai_handoffs/.council"      # manifests + flock live here
 
+# Per stage: `output` (artifact path template — {ts}/{cycle} filled at
+# dispatch), `output_mode` ("file_arg" = runner writes the file itself,
+# e.g. codex -o; "stdout_redirect" = wrapper redirects stdout to a temp
+# file and mv's into place on success — atomic), `timeout_sec` (manifest
+# older than this with a dead pid and no exit-verified artifact = FAILED,
+# reported loudly). Harvest requires the captured exit code == 0.
+
 [council.stages.ideate]
-agent  = "grok"
-prompt = "prompts/ideation.md"        # project-relative
-after  = []
+agent       = "grok"
+prompt      = "prompts/ideation.md"   # project-relative
+after       = []
+output      = "ai_handoffs/{ts}-grok-council-ideate-{cycle}.md"
+output_mode = "stdout_redirect"
+timeout_sec = 1200
 
 [council.stages.theses]
-agent  = "codex"
-prompt = "prompts/initial.md"
-after  = ["ideate"]
+agent       = "codex"
+prompt      = "prompts/initial.md"
+after       = ["ideate"]
+output      = "ai_handoffs/{ts}-codex-council-theses-{cycle}.md"
+output_mode = "file_arg"
+timeout_sec = 1800
 
 [council.stages.rank]
-agent  = "codex"
-prompt = "prompts/ranking.md"
-after  = ["theses"]
+agent       = "codex"
+prompt      = "prompts/ranking.md"
+after       = ["theses"]
+output      = "ai_handoffs/{ts}-codex-council-rank-{cycle}.md"
+output_mode = "file_arg"
+timeout_sec = 1800
 
 # Project-specific post-stages run as shell commands in the same DAG:
 # [council.stages.ingest]
-# type    = "shell"
-# command = "poetry run fleet ideator parse {artifact}"
-# after   = ["rank"]
+# type        = "shell"
+# command     = "poetry run fleet ideator parse {artifact}"
+# after       = ["rank"]
+# timeout_sec = 900

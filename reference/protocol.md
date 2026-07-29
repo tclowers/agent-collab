@@ -11,6 +11,10 @@ attestation + flat artifact layout + severity/disposition gate.
 **1.1.0** (2026-07-29, extraction release) — adds the reviewer-subagent
 author identity class, the transport-independence clause, and council
 DAG conventions. All additive; 1.0.0 artifacts remain conformant.
+Hardened pre-publication per the Codex extraction review (2026-07-29):
+mandatory mechanical verify before material dispositions, exit-verified
+council harvest, required per-run subagent markers — folded into 1.1.0,
+which was never published without them.
 
 ## 1. Roles
 
@@ -60,11 +64,14 @@ threads re-attest per round.
 
 **Identity classes (1.1.0).** An isolated reviewer subagent is a
 DISTINCT identity from the implementer that spawned it — e.g.
-`Author: Claude Reviewer (subagent)` vs `Author: Claude Code
+`Author: Claude Reviewer (subagent <run-id>)` vs `Author: Claude Code
 (implementer)` — so the reader rule stays meaningful when the same
-model family fills both roles. Every identity a project uses is
-declared in `collab.toml [agents]` with its exact attestation string
-and filename token.
+model family fills both roles. Subagent reviewer attestations MUST
+carry a per-run marker (a run/dispatch id): a role label alone is
+identity theater, while the marker binds the artifact to exactly one
+dispatch — the same dispatch-id echo CLI reviewers carry. Every
+identity a project uses is declared in `collab.toml [agents]` with its
+exact attestation string and filename token.
 
 **Reader rule.** Before acting on any artifact:
 
@@ -82,6 +89,16 @@ min-substance (reject sub-threshold stubs) and attestation-first-line
 (reject replies whose first line is not the exact expected attestation,
 including any dispatch-specific id). A reply that fails a guard is
 surfaced loudly and re-dispatched — a skip or a stub is never success.
+
+**Mandatory mechanical verify (1.1.0).** Before a MAJOR or BLOCKING
+finding may be recorded or dispositioned, the reply MUST pass a
+mechanical verify — a command that exits nonzero on failure — checking
+at minimum: first line equals the expected attestation (including any
+run/dispatch id), filename author token matches, and min-substance.
+This applies on EVERY transport: procedural eyeballing is an acceptable
+floor only for MINOR/NOTE handling. A transport with a built-in guard
+(e.g. a dispatch framework that rejects unattested replies) satisfies
+this; the portable tiers run the check explicitly post-reply.
 
 ## 4. Severities and the disposition gate
 
@@ -146,8 +163,14 @@ names an agent (or a shell command), a prompt, and its upstream stages.
 Mechanics:
 
 - **Artifact-as-sentinel** — a stage is COMPLETE iff its output
-  artifact exists, opens with a valid attestation, and passes
-  min-substance. No status table; state is derived from disk.
+  artifact exists, opens with a valid attestation, passes
+  min-substance, AND the runner's completion is exit-verified: the
+  run-manifest records a successful runner exit (captured exit code
+  0), or the runner wrote the artifact via atomic temp-file rename.
+  Existence + attestation + size alone is race-prone against a runner
+  that streams to the output path — a partial file could open validly
+  and unlock downstream stages. No status table; state is derived
+  from disk.
 - **Idempotent resume** — each `council resume` pass: dispatch every
   stage whose inputs are complete and output absent (detached,
   `setsid`-wrapped, with a run-manifest JSON beside it recording

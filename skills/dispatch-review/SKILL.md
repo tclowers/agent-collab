@@ -53,13 +53,26 @@ scheduler-fired, >session-lifetime, or spend-capped review runs.
 
 ## On completion (all transports — the guards live HERE)
 
-1. **Attestation guard**: reply's first line must equal the expected
-   attestation exactly. Mismatch, missing, or Author==your own
-   identity → the file is NOT a review (unattested/stale/self-
-   authored): do not read findings as verdicts; investigate and
+1. **Mechanical verify (MANDATORY before any MAJOR/BLOCKING is
+   recorded)** — run an actual command that exits nonzero on failure,
+   not an eyeball check:
+
+   ```bash
+   reply=<reply-path>; expected='<expected attestation line>'
+   [ "$(head -1 "$reply" | tr -d '\r')" = "$expected" ] \
+     && [ "$(stat -c%s "$reply")" -ge <min_bytes> ] \
+     && case "$(basename "$reply")" in *-<reviewer-token>-*) true;; *) false;; esac \
+     && echo VERIFIED || { echo VERIFY-FAILED; exit 1; }
+   ```
+
+   A transport whose framework already enforces this mechanically
+   (e.g. a dispatch job that rejects unattested replies) satisfies the
+   requirement; the portable tiers MUST run it explicitly. On failure:
+   the file is NOT a review (unattested / stale / partial / wrong
+   dispatch) — do not read findings as verdicts; investigate and
    re-dispatch.
-2. **Substance guard**: reply ≥ `guards.min_bytes`, else treat as a
-   stub → re-dispatch.
+2. **Self-check**: Author == your own identity → your own prior
+   output; never disposition it as external review.
 3. **Disposition** per the protocol: BLOCKING resolved (fix /
    prove-false / operator override) before merge; MAJOR gets a written
    disposition; MINOR at judgment. After material fixes, author an
