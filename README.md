@@ -45,7 +45,7 @@ directories redundant.
 ## Install
 
 ```
-/plugin marketplace add <this-repo>       # path or git URL
+/plugin marketplace add tclowers/agent-collab
 /plugin install agent-collab
 ```
 
