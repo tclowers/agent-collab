@@ -57,7 +57,9 @@ escalate = ["governance", "schema", "risk"]
 
 # ── Council (optional) ───────────────────────────────────────────────
 # Declarative stage DAG. State lives on disk: a stage is COMPLETE iff
-# its output artifact exists + is attested + passes min_bytes.
+# its output artifact exists + is attested + passes min_bytes AND the
+# run is exit-verified (captured exit code 0, or atomic-rename
+# output_mode) — see the per-stage schema notes below.
 
 [council]
 run_dir = "ai_handoffs/.council"      # manifests + flock live here

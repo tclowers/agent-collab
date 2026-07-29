@@ -94,7 +94,9 @@ surfaced loudly and re-dispatched — a skip or a stub is never success.
 finding may be recorded or dispositioned, the reply MUST pass a
 mechanical verify — a command that exits nonzero on failure — checking
 at minimum: first line equals the expected attestation (including any
-run/dispatch id), filename author token matches, and min-substance.
+run/dispatch id), the filename's AUTHOR SEGMENT (the token immediately
+after the timestamp prefix — parsed positionally, never a substring
+match) equals the reviewer's token, and min-substance.
 This applies on EVERY transport: procedural eyeballing is an acceptable
 floor only for MINOR/NOTE handling. A transport with a built-in guard
 (e.g. a dispatch framework that rejects unattested replies) satisfies

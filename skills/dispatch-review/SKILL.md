@@ -61,9 +61,14 @@ scheduler-fired, >session-lifetime, or spend-capped review runs.
    reply=<reply-path>; expected='<expected attestation line>'
    [ "$(head -1 "$reply" | tr -d '\r')" = "$expected" ] \
      && [ "$(stat -c%s "$reply")" -ge <min_bytes> ] \
-     && case "$(basename "$reply")" in *-<reviewer-token>-*) true;; *) false;; esac \
+     && basename "$reply" | grep -Eq \
+          '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z-<reviewer-token>-' \
      && echo VERIFIED || { echo VERIFY-FAILED; exit 1; }
    ```
+
+   The basename check parses the AUTHOR SEGMENT — the token immediately
+   after the timestamp prefix — never a substring match (a file named
+   `<ts>-claude-codex-topic.md` must FAIL a `codex` check).
 
    A transport whose framework already enforces this mechanically
    (e.g. a dispatch job that rejects unattested replies) satisfies the
