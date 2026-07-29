@@ -1,0 +1,6 @@
+{
+  "name": "agent-collab",
+  "description": "Multi-agent collaboration protocol for Claude-driven multi-model projects: authorship attestation, flat attested artifact log, adversarial review loops (subagent / cross-vendor CLI / project dispatch), and filesystem-state council orchestration.",
+  "version": "0.1.0",
+  "author": { "name": "Tom Clowers" }
+}

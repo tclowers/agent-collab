@@ -1,0 +1,11 @@
+{
+  "name": "agent-collab-marketplace",
+  "owner": { "name": "Tom Clowers" },
+  "plugins": [
+    {
+      "name": "agent-collab",
+      "source": "./",
+      "description": "Multi-agent collaboration protocol: attestation, adversarial review, council orchestration."
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+# collab.toml — per-project configuration for the agent-collab plugin.
+# Copy to the project root and edit. Skills read this at invoke time;
+# everything project-specific lives here, nothing in the plugin.
+
+protocol = "1.1.0"            # collab-protocol pin (see plugin reference/protocol.md).
+                              # MAJOR mismatch vs the installed plugin = hard error.
+
+[paths]
+handoffs = "ai_handoffs"      # ONE flat dir for all AI-to-AI artifacts
+ledger   = "AI_COLLABORATION.md"
+
+[guards]
+min_bytes = 200               # reject stub replies below this
+
+# ── Identities ────────────────────────────────────────────────────────
+# Every identity that authors artifacts. `token` is the filename author
+# token; `attestation` is the exact required in-body first line
+# ({job_id} etc. filled at dispatch time when applicable).
+
+[agents.claude]
+role        = "implementer"
+token       = "claude"
+attestation = "Author: Claude Code (implementer)"
+
+[agents.reviewer]                     # isolated subagent tier (same harness)
+role        = "reviewer"
+token       = "reviewer"
+attestation = "Author: Claude Reviewer (subagent)"
+
+[agents.codex]                        # cross-vendor reviewer (optional)
+role        = "reviewer"
+token       = "codex"
+attestation = "Author: Codex CLI (review {run_id})"
+cli         = "codex exec --skip-git-repo-check -s {sandbox} -C {repo} -o {output}"
+blocking_authority = true             # findings it marks BLOCKING gate merges
+
+[agents.grok]                         # producer (optional)
+role        = "producer"
+token       = "grok"
+attestation = "Author: Grok Build (producer — ideation survey)"
+cli         = "grok -p"
+
+# ── Reviewer transport ───────────────────────────────────────────────
+[reviewer]
+mode     = "subagent-cli"     # subagent | subagent-cli | dispatch
+identity = "codex"            # which [agents.*] runs reviews by default
+fallback = "reviewer"         # used when the CLI is unavailable
+sandbox  = "read-only"
+timeout_sec = 1800
+# escalate: change-classes that REQUIRE the strongest available tier
+escalate = ["governance", "schema", "risk"]
+# dispatch mode only — project job runner command template:
+# dispatch_cmd = "poetry run fleet jobs run codex_review --detach --params {params_json}"
+# dispatch_watch = "sqlite3 fleet/state.db \"SELECT status FROM jobs WHERE job_id='{job_id}'\""
+
+# ── Council (optional) ───────────────────────────────────────────────
+# Declarative stage DAG. State lives on disk: a stage is COMPLETE iff
+# its output artifact exists + is attested + passes min_bytes.
+
+[council]
+run_dir = "ai_handoffs/.council"      # manifests + flock live here
+
+[council.stages.ideate]
+agent  = "grok"
+prompt = "prompts/ideation.md"        # project-relative
+after  = []
+
+[council.stages.theses]
+agent  = "codex"
+prompt = "prompts/initial.md"
+after  = ["ideate"]
+
+[council.stages.rank]
+agent  = "codex"
+prompt = "prompts/ranking.md"
+after  = ["theses"]
+
+# Project-specific post-stages run as shell commands in the same DAG:
+# [council.stages.ingest]
+# type    = "shell"
+# command = "poetry run fleet ideator parse {artifact}"
+# after   = ["rank"]
