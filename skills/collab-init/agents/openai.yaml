@@ -1,0 +1,4 @@
+interface:
+  display_name: "Initialize Collaboration"
+  short_description: "Set up shared roles, handoffs, and review policy"
+  default_prompt: "Use $collab-init to set up collaboration in this project."

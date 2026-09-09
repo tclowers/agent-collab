@@ -1,0 +1,4 @@
+interface:
+  display_name: "Collaboration Audit"
+  short_description: "Check attribution, review debt, and protocol drift"
+  default_prompt: "Use $collab-audit to check this project collaboration state."

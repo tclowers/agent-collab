@@ -1,0 +1,4 @@
+interface:
+  display_name: "Council"
+  short_description: "Run or inspect a configured council workflow"
+  default_prompt: "Use $council to report the configured council status."

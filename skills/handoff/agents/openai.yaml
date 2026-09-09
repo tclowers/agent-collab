@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Handoff"
+  short_description: "Create an attributed handoff for another agent"
+  default_prompt: "Use $handoff to prepare this work for another agent."

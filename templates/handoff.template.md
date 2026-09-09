@@ -1,4 +1,4 @@
-Author: {{ATTESTATION}}
+{{ATTESTATION}}
 Author-ID: {{AUTHOR_ID}}
 Audience: {{AUDIENCE}}
 Date: {{DATE}}

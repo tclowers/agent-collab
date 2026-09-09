@@ -1,103 +1,70 @@
-# collab.toml — per-project configuration for the agent-collab plugin.
-# Copy to the project root and edit. Skills read this at invoke time;
-# everything project-specific lives here, nothing in the plugin.
-
-protocol = "1.1.0"            # collab-protocol pin (see plugin reference/protocol.md).
-                              # MAJOR mismatch vs the installed plugin = hard error.
+# Shared configuration for Claude Code and Codex.
+protocol = "2.0.0"
 
 [paths]
-handoffs = "ai_handoffs"      # ONE flat dir for all AI-to-AI artifacts
-ledger   = "AI_COLLABORATION.md"
+handoffs = "ai_handoffs"
+ledger = "AI_COLLABORATION.md"
+
+[roles]
+implementer = "claude"        # Either host may own implementation.
+reviewers = ["codex"]
+producers = []
+
+[review_policy]
+trigger = "requested"         # requested | completion (explicit opt-in)
+max_rounds = 1               # Includes confirmation rounds.
+confirmation_after_fixes = false
 
 [guards]
-min_bytes = 200               # reject stub replies below this
+min_bytes = 200
 
-# ── Identities ────────────────────────────────────────────────────────
-# Every identity that authors artifacts. `token` is the filename author
-# token; `attestation` is the exact required in-body first line
-# ({job_id} etc. filled at dispatch time when applicable).
-
+# Role and fresh run ID are resolved at invocation. Preserve historical
+# artifact headers when these settings change.
 [agents.claude]
-role        = "implementer"
-token       = "claude"
-attestation = "Author: Claude Code (implementer)"
-
-[agents.reviewer]                     # isolated subagent tier (same harness)
-role        = "reviewer"
-token       = "reviewer"
-attestation = "Author: Claude Reviewer (subagent {run_id})"   # per-run marker REQUIRED
-                                      # (protocol §3: a role label alone is identity
-                                      # theater; the marker binds artifact → dispatch)
-
-[agents.codex]                        # cross-vendor reviewer (optional)
-role        = "reviewer"
-token       = "codex"
-attestation = "Author: Codex CLI (review {run_id})"
-cli         = "codex exec --skip-git-repo-check -s {sandbox} -C {repo} -o {output}"
-blocking_authority = true             # findings it marks BLOCKING gate merges
-
-[agents.grok]                         # producer (optional)
-role        = "producer"
-token       = "grok"
-attestation = "Author: Grok Build (producer — ideation survey)"
-cli         = "grok -p"
-
-# ── Reviewer transport ───────────────────────────────────────────────
-[reviewer]
-mode     = "subagent-cli"     # subagent | subagent-cli | dispatch
-identity = "codex"            # which [agents.*] runs reviews by default
-fallback = "reviewer"         # used when the CLI is unavailable
-sandbox  = "read-only"
-timeout_sec = 1800
-# escalate: change-classes that REQUIRE the strongest available tier
-escalate = ["governance", "schema", "risk"]
-# dispatch mode only — project job runner command template:
-# dispatch_cmd = "poetry run fleet jobs run codex_review --detach --params {params_json}"
-# dispatch_watch = "sqlite3 fleet/state.db \"SELECT status FROM jobs WHERE job_id='{job_id}'\""
-
-# ── Council (optional) ───────────────────────────────────────────────
-# Declarative stage DAG. State lives on disk: a stage is COMPLETE iff
-# its output artifact exists + is attested + passes min_bytes AND the
-# run is exit-verified (captured exit code 0, or atomic-rename
-# output_mode) — see the per-stage schema notes below.
-
-[council]
-run_dir = "ai_handoffs/.council"      # manifests + flock live here
-
-# Per stage: `output` (artifact path template — {ts}/{cycle} filled at
-# dispatch), `output_mode` ("file_arg" = runner writes the file itself,
-# e.g. codex -o; "stdout_redirect" = wrapper redirects stdout to a temp
-# file and mv's into place on success — atomic), `timeout_sec` (manifest
-# older than this with a dead pid and no exit-verified artifact = FAILED,
-# reported loudly). Harvest requires the captured exit code == 0.
-
-[council.stages.ideate]
-agent       = "grok"
-prompt      = "prompts/ideation.md"   # project-relative
-after       = []
-output      = "ai_handoffs/{ts}-grok-council-ideate-{cycle}.md"
+token = "claude"
+attestation = "Author: Claude Code ({role} {run_id})"
+cli = """claude -p --output-format text --tools Read,Grep,Glob --permission-mode plan --strict-mcp-config --mcp-config '{"mcpServers":{}}'"""
 output_mode = "stdout_redirect"
-timeout_sec = 1200
+blocking_authority = true
 
-[council.stages.theses]
-agent       = "codex"
-prompt      = "prompts/initial.md"
-after       = ["ideate"]
-output      = "ai_handoffs/{ts}-codex-council-theses-{cycle}.md"
+[agents.codex]
+token = "codex"
+attestation = "Author: Codex ({role} {run_id})"
+cli = "codex exec --skip-git-repo-check -s {sandbox} -C {repo} -o {output} -"
 output_mode = "file_arg"
-timeout_sec = 1800
+blocking_authority = true
 
-[council.stages.rank]
-agent       = "codex"
-prompt      = "prompts/ranking.md"
-after       = ["theses"]
-output      = "ai_handoffs/{ts}-codex-council-rank-{cycle}.md"
-output_mode = "file_arg"
-timeout_sec = 1800
+[agents.reviewer]
+token = "reviewer"
+# Fill host with the actual invoking host; native agent is a separate run.
+attestation = "Author: {host} Reviewer ({role} {run_id})"
 
-# Project-specific post-stages run as shell commands in the same DAG:
-# [council.stages.ingest]
-# type        = "shell"
-# command     = "poetry run fleet ideator parse {artifact}"
-# after       = ["rank"]
-# timeout_sec = 900
+[reviewer]
+mode = "subagent-cli"         # subagent | subagent-cli | dispatch
+identity = "codex"            # Change together with roles when reversing.
+fallback = "reviewer"         # Only if native tools exist and policy permits.
+sandbox = "read-only"
+timeout_sec = 1800
+escalate = []                 # Optional classes requiring cross-vendor review.
+# Existing project runners may supply dispatch_cmd and dispatch_watch.
+
+# CLI examples above are for review. Customize capabilities deliberately for
+# producer stages. Never infer permission to run an implementation agent from
+# a reviewer command. Prompts go through stdin, not shell interpolation.
+
+# Optional council: collab-init omits this section until a task is specified.
+# [council]
+# run_dir = "ai_handoffs/.council"
+#
+# [council.stages.assess]
+# agent = "codex"
+# role = "reviewer"
+# prompt = "prompts/assessment.md"
+# after = []
+# output = "ai_handoffs/{ts}-codex-assess-{cycle}.md"
+# output_mode = "file_arg"
+# timeout_sec = 1800
+#
+# Shell stages use type = "shell", command, after, and timeout_sec.
+# Validate prompts, acyclic dependencies, unique output paths, and runtime
+# capabilities before dispatching. See reference/hosts.md.

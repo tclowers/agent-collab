@@ -1,87 +1,53 @@
 ---
 name: dispatch-review
-description: Run an adversarial review of a handoff through the configured transport (subagent / subagent-cli / project dispatch), verify the reply's attestation, and drive the disposition loop. Use when the user says "send for review", "dispatch to the reviewer", "/dispatch-review <handoff-path>", or after authoring a handoff.
-argument-hint: <handoff-path> [reviewer-identity]
+description: Dispatch a commissioned independent review of a handoff, verify its provenance, and record findings and dispositions. Use when the user requests review or an explicit project review policy requires it.
 ---
 
-# dispatch-review — transport-independent adversarial review
+# Dispatch review
 
-## Setup (all transports)
+Read the target project's collab.toml and the plugin's
+[protocol](../../reference/protocol.md). Read [host adapters](../../reference/hosts.md)
+for the chosen transport. Resolve plugin resources relative to this skill.
+Missing configuration is a gap to report, not permission to initialize.
+A protocol-major mismatch requires an authorized migration.
 
-1. Read `collab.toml`: `[reviewer]` (mode, identity, fallback,
-   sandbox, timeout, escalate), `[agents.*]` (attestation strings,
-   CLI templates), `[guards]`, `[paths]`.
-2. Verify the handoff exists and is attested (reader rule — including
-   filename-token match). Unattested → fix it first via the `handoff`
-   skill; never dispatch unattested work.
-3. **Escalation check**: if the change set touches a class listed in
-   `escalate` (governance, schema, risk, ...), require the strongest
-   available tier (cross-vendor `subagent-cli`/`dispatch`); if only
-   the in-family `subagent` is available, SAY SO to the user before
-   proceeding — an escalated class reviewed in-family is a conscious
-   operator choice, not a silent fallback.
-4. Derive the reply path: `<handoffs>/<fresh-UTC-ts>-<reviewer-token>-
-   <topic>[-rN].md` (topic + rN mirror the handoff). Compute the
-   expected attestation from the reviewer's `collab.toml` string
-   (fill `{run_id}`-style fields with this dispatch's id when the
-   template has them).
+## Prepare
 
-## Transport: `subagent`
+1. Establish the exact handoff/revision, current implementer, requested
+   reviewer, and review_policy. Creating a handoff alone does not request
+   delegation. Default: one requested round.
+2. Verify the input's attestation and scope. If the current author must fix
+   their handoff, use the sibling handoff skill; never sign another agent's
+   work. A reviewer must not be the author of the work being evaluated.
+3. Read reviewer transport, timeout, sandbox, fallback, and escalation
+   settings. A cross-vendor requirement cannot silently fall back to the same
+   family. Use an already-authorized compatible route or report the gap.
+4. Assign a fresh dispatch ID. Resolve the configured attestation using
+   {role} = reviewer, {run_id} = that ID, and {host} = actual host; preserve explicit strings where
+   configured. Reviewer attestations must include the dispatch ID. Derive the
+   reply filename from the actual author token.
+5. Supply the handoff, source scope, exact reply path, expected Author line,
+   and [reviewer instructions](../../reference/reviewer.md). Keep a dispatch
+   record binding those values to the actual completed agent/process.
 
-Spawn the plugin's `adversarial-reviewer` agent (background) with: the
-handoff path, the change-set scope, the reply path, and the expected
-attestation string. Prefer a different model than the session's via the
-Agent tool's model override when the project configures one. The
-completion notification returns the findings summary.
+## Execute and verify
 
-## Transport: `subagent-cli`
+- subagent: use available native tools and an independent run.
+- subagent-cli: use the configured external CLI and output mode. The host
+  guide distinguishes Codex output files from Claude stdout capture.
+- dispatch: use the existing project runner; watch every terminal state.
+  Silence, failed access, and partial output are not success.
 
-Run the reviewer CLI as a detached background Bash command, built from
-the agent's `cli` template + sandbox + the reply path as the output
-anchor, with the handoff body as the prompt PLUS an appended output
-contract: "FIRST line of your reply must be exactly `<expected
-attestation>`; your final message is captured verbatim to `<reply
-path>` and IS the deliverable." The harness wakes you when the process
-exits — do not poll.
+Wait using the host's actual tools and keep updates responsive. Validate the
+completed reply with scripts/verify_artifact.py as described in the host
+guide before accepting it. Nonzero exit, timeout, wrong identity/dispatch,
+or undersized output is incomplete/failed review. Diagnose before retrying,
+respect the commissioned budget, and preserve a usable handoff if blocked.
 
-## Transport: `dispatch`
+## Disposition
 
-Fill the project's `dispatch_cmd` template and run it; arm the
-project's `dispatch_watch` as a background loop that exits on ANY
-terminal status (silence is not success). This tier is for
-scheduler-fired, >session-lifetime, or spend-capped review runs.
-
-## On completion (all transports — the guards live HERE)
-
-1. **Mechanical verify (MANDATORY before any MAJOR/BLOCKING is
-   recorded)** — run an actual command that exits nonzero on failure,
-   not an eyeball check:
-
-   ```bash
-   reply=<reply-path>; expected='<expected attestation line>'
-   [ "$(head -1 "$reply" | tr -d '\r')" = "$expected" ] \
-     && [ "$(stat -c%s "$reply")" -ge <min_bytes> ] \
-     && basename "$reply" | grep -Eq \
-          '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z-<reviewer-token>-' \
-     && echo VERIFIED || { echo VERIFY-FAILED; exit 1; }
-   ```
-
-   The basename check parses the AUTHOR SEGMENT — the token immediately
-   after the timestamp prefix — never a substring match (a file named
-   `<ts>-claude-codex-topic.md` must FAIL a `codex` check).
-
-   A transport whose framework already enforces this mechanically
-   (e.g. a dispatch job that rejects unattested replies) satisfies the
-   requirement; the portable tiers MUST run it explicitly. On failure:
-   the file is NOT a review (unattested / stale / partial / wrong
-   dispatch) — do not read findings as verdicts; investigate and
-   re-dispatch.
-2. **Self-check**: Author == your own identity → your own prior
-   output; never disposition it as external review.
-3. **Disposition** per the protocol: BLOCKING resolved (fix /
-   prove-false / operator override) before merge; MAJOR gets a written
-   disposition; MINOR at judgment. After material fixes, author an
-   `-rN+1` handoff and re-dispatch — the reviewer re-judges before
-   merge; you are the builder, not the judge.
-4. **Record**: ledger entry (attested via its `Agent:` field) with
-   artifact references and status.
+Record findings and evidence, then fix, refute, defer, or escalate per the
+protocol. Follow confirmation_after_fixes and max_rounds; no automatic
+redispatch under the one-round default. Identify the independently reviewed
+revision and later implementer checks separately. Append the ledger entry
+with real author, artifact links, dispatch ID, and status.

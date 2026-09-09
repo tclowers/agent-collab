@@ -1,60 +1,100 @@
 # agent-collab
 
-A Claude Code plugin packaging a multi-agent collaboration protocol for
-projects where Claude drives implementation and other agents — other
-vendors' CLIs (Codex, Grok), or isolated Claude subagents — review,
-produce, and advise.
+Shared collaboration commands for **Codex and Claude Code**: initialize a
+project, write handoffs, dispatch independent reviews, audit collaboration
+records, and run a configured council. Either host can own implementation;
+roles and review policy live in the project, with one writer per scope.
 
-Extracted from the fleet-manager trading project (2026-07), where the
-protocol was earned incident-by-incident: authorship attestation exists
-because a review once landed at a self-chosen path with nothing proving
-who wrote it; the guards exist because a stub reply nearly passed as a
-review; the flat layout exists because attestation made per-agent
-directories redundant.
+## Commands
 
-## What's inside
+| Task | Codex | Claude Code |
+| --- | --- | --- |
+| Initialize or migrate | `$collab-init` | `/agent-collab:collab-init` |
+| Write a handoff | `$handoff` | `/agent-collab:handoff` |
+| Commission a review | `$dispatch-review` | `/agent-collab:dispatch-review` |
+| Run/resume/status of a council | `$council` | `/agent-collab:council` |
+| Audit records | `$collab-audit` | `/agent-collab:collab-audit` |
 
-- **`reference/protocol.md`** — collab-protocol (semver'd contract):
-  attestation writer/reader rules, flat artifact layout, severity +
-  disposition gate, transport-independence, council conventions.
-- **Skills** — `collab-init` (bootstrap/upgrade a project), `handoff`
-  (author attested handoffs), `dispatch-review` (three-transport
-  adversarial review loop with attestation + substance guards),
-  `council` (filesystem-state DAG orchestration), `collab-audit`
-  (hygiene: unattested artifacts, disposition debt, version drift).
-- **`agents/adversarial-reviewer.md`** — the in-family reviewer tier:
-  fresh context, distinct author identity, refute-don't-affirm.
-- **Templates** — `collab.toml.example` (the per-project config seam),
-  `AGENTS.core.md` (layered core + project overlay), handoff template.
-
-## Design principles
-
-1. **Attestation over location.** Filenames and directories are
-   convenience; the in-body `Author:` line is the proof. Guards reject
-   unattested replies mechanically wherever a seam allows.
-2. **Transport independence.** The same contract runs over an isolated
-   subagent, a cross-vendor CLI in background, or a project's own job
-   framework. Portability floor = zero infrastructure.
-3. **Filesystem as state.** Council orchestration derives all state
-   from attested artifacts + tiny run manifests — idempotent resume,
-   no database, works identically live and headless (`claude -p`).
-4. **Config owns the specifics.** Everything project-shaped (agent
-   roster, CLI commands, escalation classes, council DAG) lives in the
-   project's `collab.toml`, never in the plugin.
+Natural-language requests also work. New projects default to requested
+reviews, one round, and no automatic review after fixes. Creating a handoff
+alone does not commission a reviewer. Existing project policies survive
+migration unless the user changes them.
 
 ## Install
 
+### Codex
+
+Install from this repository's marketplace:
+
+```bash
+codex plugin marketplace add tclowers/agent-collab
+codex plugin add agent-collab@agent-collab-marketplace
 ```
+
+For a local checkout already registered in a personal marketplace, use
+`codex plugin add agent-collab@personal` instead.
+
+Open a new Codex task to discover the installed skills. Then use
+`$collab-init` in the intended project, specifying roles if desired:
+
+```text
+$collab-init Set up this project with Codex implementing and Claude reviewing.
+```
+
+Install the whole plugin: its skills share `reference/`, `templates/`, and
+`scripts/` at the plugin root. Copying an individual skill loses those resources.
+
+### Claude Code
+
+```text
 /plugin marketplace add tclowers/agent-collab
-/plugin install agent-collab
+/plugin install agent-collab@agent-collab-marketplace
 ```
 
-Then in the target project: run the `collab-init` skill.
+For unpublished local changes, start
+`claude --plugin-dir /absolute/path/to/agent-collab`.
 
-## Versioning
+## What is shared
 
-Two versions, deliberately distinct: `plugin.json` versions the
-implementation; `reference/protocol.md` versions the contract
-(collab-protocol, semver — MAJOR = writer/reader contract break).
-Projects pin the protocol version in `collab.toml`; skills drift-check
-on load.
+- [Protocol](reference/protocol.md): roles, authorship, severity, review
+  policy, and durable records.
+- [Host adapters](reference/hosts.md): native subagents when exposed,
+  cross-vendor CLI review, process completion, and safe output capture.
+- [Reviewer brief](reference/reviewer.md): common instructions used by
+  Codex dispatch and the Claude agent wrapper.
+- [Project configuration](templates/collab.toml.example): roles, agent
+  commands, output modes, guards, and optional council stages.
+- [Artifact validator](scripts/verify_artifact.py): rejects missing,
+  partial, misattributed, or stale-run replies. Header and size checks do
+  not establish substantive quality or cryptographically prove authorship.
+
+Codex does not need to load Claude's `agents/*.md` declarations; its
+native reviewer receives the shared brief explicitly. External CLI review
+works in either direction when the selected CLI is installed, authenticated,
+and permitted. Missing tooling produces a handoff or a reported limitation.
+
+Council execution currently requires POSIX `flock`, `setsid`, and process
+status support, or an equivalent project runner. It is not a native Windows
+runner. Council status is read-only; invoking a council does not create a
+schedule. Requested Codex app schedules use the app's automation tools.
+
+## Versions and existing projects
+
+Plugin release **0.2.0** implements **collab-protocol 2.0.0**. Codex local
+reinstalls may append build metadata to the plugin version for cache refresh.
+Projects pin their protocol in `collab.toml`. Installing the plugin does
+not modify or migrate existing projects.
+
+The major protocol change adds explicit role and review-policy semantics.
+Use the [migration guide](reference/migration-v2.md) when intentionally
+upgrading a 1.x project. Preserve project overlays, historical attestations,
+and existing review requirements; never relabel old artifacts.
+
+## Validate local changes
+
+```bash
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
+
+The plugin and skill manifests can also be checked with the Codex
+plugin-creator and skill-creator validators.

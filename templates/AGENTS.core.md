@@ -5,19 +5,25 @@
      is yours — everything above it tracks the plugin's protocol and is
      regenerated on protocol upgrades. -->
 
-This file is the single source of truth for every AI agent working in
-this repository. All agents read it at the start of every session.
+Read these shared instructions with the project overlay and the current
+user request. User instructions take precedence over protocol defaults.
 
 ## Agent roles (strict)
 
 - **{{IMPLEMENTER_NAME}} (implementer)** — the ONLY agent that edits
-  code, runs commands, or mutates state. Owns tests, integration,
-  commits. Orchestrates dispatches to reviewers and producers.
+  code or mutates project state for the agreed scope. Read-only commands
+  are available to reviewers. Owns tests, integration,
+  authorized commits. Orchestrates commissioned dispatches to reviewers and producers.
 - **Reviewers** ({{REVIEWER_NAMES}}) — strictly read-only for code and
   state. Allowed writes: attested artifacts in the flat handoff
   directory (own author token only) and ledger appends.
 - **Producers** ({{PRODUCER_NAMES}}) — write only their own attested
   artifacts + provenance sidecars in the flat handoff directory.
+
+Role assignments are configured in `collab.toml [roles]`; either host may
+implement or review. Record writer handovers and unfinished work explicitly.
+Historical authorship does not change with roles. A role swap does not turn
+an author's own previous work into independent review.
 
 ## Handoff layout — ONE flat directory
 
@@ -40,8 +46,8 @@ Protocol: collab-{{PROTOCOL_VERSION}}
 ```
 
 Reader rule — before acting on any artifact: (1) read `Author:`;
-(2) Author == you → your OWN prior output, never disposition as
-external; (3) missing → UNATTESTED, do not disposition, request signed
+(2) compare the actual dispatch/session identity and authorship — your
+own work is never independent evidence merely because the role changed; (3) missing → UNATTESTED, do not disposition, request signed
 re-issue; (4) filename token vs in-body mismatch → UNATTESTED.
 
 Declared identities and their exact attestation strings live in
@@ -62,8 +68,10 @@ ledger (`{{LEDGER}}`); the human operator decides.
 
 1. Read the latest `{{LEDGER}}` entries at session start.
 2. Implementer works; reviewers critique via attested artifacts.
-3. One review per change-set at completion; confirmation rounds
-   (`-rN`) after material fixes — reviewer re-judges before merge.
+3. Follow `collab.toml [review_policy]`. Default: requested review, one
+   round, no automatic confirmation after fixes. Do not launch agents just
+   because a handoff exists. Record independently reviewed revisions and
+   later implementer checks separately.
 4. Significant work → structured ledger entry (the entry's `Agent:`
    field is its attestation).
 

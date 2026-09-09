@@ -1,11 +1,14 @@
 ---
 name: collab-audit
-description: Hygiene check over the collaboration state — unattested or mis-attributed artifacts, undispositioned BLOCKING/MAJOR findings, protocol version drift, and council manifest health. Use when the user says "audit the collab state", "check protocol hygiene", or periodically before major merges.
+description: Hygiene check over the collaboration state — unattested or mis-attributed artifacts, undispositioned BLOCKING/MAJOR findings, protocol version drift, and council manifest health. Use when the user says "audit the collab state", "check protocol hygiene", or requests a collaboration audit.
 ---
 
 # collab-audit — protocol hygiene check (read-only)
 
-Read `collab.toml`, then report findings in four sections. This skill
+Read `collab.toml` and [protocol](../../reference/protocol.md), then report
+findings in four sections. If configuration is absent, report that the
+project is not initialized; do not create files. Resolve plugin resources
+relative to this skill. This skill
 mutates nothing; it surfaces work.
 
 ## 1. Artifact attestation sweep
@@ -16,8 +19,10 @@ check git/ledger for the adoption date):
 
 - Missing `Author:` first-lines block → UNATTESTED.
 - Filename author token vs in-body Author mismatch → CONFLICT.
-- Author string not declared in `collab.toml [agents]` → UNKNOWN
-  IDENTITY.
+- Author string not matching a configured attestation template (resolve
+  role/host/run placeholders from actual run records) → UNKNOWN IDENTITY.
+  For pre-upgrade artifacts, use the historical config/protocol and ledger.
+  Do not mark old valid headers invalid solely because a role was changed.
 - Below `guards.min_bytes` → STUB.
 
 ## 2. Disposition debt
@@ -45,5 +50,5 @@ configured stage produces (a DAG wiring bug).
 ## Output
 
 Compact report, worst first. Offer — but do not perform unprompted —
-the fixes: re-issue attestations (only by the true author), dispatch
-missing disposition rounds, run the upgrade path.
+the fixes: re-issue attestations (only by the true author), record
+missing dispositions or commission further review, run the upgrade path.

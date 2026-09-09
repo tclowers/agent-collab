@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dispatch Review"
+  short_description: "Commission and validate an independent agent review"
+  default_prompt: "Use $dispatch-review to review this scoped handoff."

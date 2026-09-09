@@ -5,9 +5,16 @@ description: Author an attested handoff artifact in the flat handoff layout (hou
 
 # handoff — author an attested handoff artifact
 
+Read [protocol](../../reference/protocol.md). Resolve templates and other
+plugin resources relative to this skill's plugin root. Project paths resolve
+from collab.toml. A missing config is not permission to initialize.
+
 ## Procedure
 
-1. Read `collab.toml` (paths, your attestation string, protocol pin).
+1. Read `collab.toml` (paths, roles, attestation, protocol pin). Use the
+   actual writer identity and a fresh invocation ID. Resolve {role}, {run_id},
+   and {host} when present in the configured attestation. Never relabel
+   another agent's work or change historical headers after a role swap.
 2. Derive the path: `<handoffs>/<UTC-ts>-<your-token>-<topic>[-rN].md`
    — `date -u +%Y-%m-%dT%H%M%SZ`; topic = short kebab slug of the
    change set; `-rN` only when this continues an existing thread (same

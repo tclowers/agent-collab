@@ -1,43 +1,40 @@
 ---
 name: collab-init
-description: Bootstrap a project onto the agent-collab protocol — create the flat handoff dir, ledger, collab.toml, and a layered AGENTS.md (protocol core + project overlay). Use when the user says "set up agent collab", "init the collaboration protocol", or installs the plugin in a fresh project.
+description: Initialize or explicitly upgrade shared Claude Code and Codex collaboration instructions, role configuration, handoff storage, and a ledger in a project.
 ---
 
-# collab-init — bootstrap a project onto collab-protocol
+# Initialize collaboration
 
-Idempotent: safe to re-run; never overwrites project-authored content.
+Read applicable project instructions, the plugin's
+[protocol](../../reference/protocol.md), and [host guide](../../reference/hosts.md).
+Resolve templates from the plugin root, not the target working directory.
 
-## Procedure
-
-1. **Detect existing state.** If `collab.toml` exists at the project
-   root, this project is already initialized — offer upgrade instead
-   (step 6) and stop.
-2. **Ask the user** (only what config cannot default):
-   - Which agents exist? (implementer is Claude; reviewers/producers +
-     their CLIs, e.g. codex / grok / none — "none" still gets the
-     `reviewer` subagent tier.)
-   - Handoff dir name (default `ai_handoffs`) and ledger name (default
-     `AI_COLLABORATION.md`).
-3. **Write files** (from the plugin's `templates/`):
-   - `collab.toml` from `collab.toml.example`, trimmed to the declared
-     agents; pin `protocol` to the plugin's current protocol version
-     (read it from `reference/protocol.md` line 1).
-   - `<handoffs>/` directory (+ `.council/` if a council was declared).
-   - Ledger from scratch if absent: title, purpose line, entry-format
-     block (entries attest via their `Agent:` field), append-only rule.
-   - `AGENTS.md` from `AGENTS.core.md`, filling `{{...}}` placeholders
-     from the answers. If an `AGENTS.md` already exists, do NOT
-     clobber: place its full current content into the PROJECT OVERLAY
-     section and show the user the result before writing.
-4. **Wire the reviewer default**: if a cross-vendor CLI was declared,
-   probe it (`which codex` etc.); set `[reviewer] mode` to
-   `subagent-cli` when found, else `subagent` with a note.
-5. **Report**: files written, the protocol version pinned, and the two
-   next actions — author a first handoff (`handoff` skill) and run a
-   first review (`dispatch-review` skill).
-6. **Upgrade path** (existing project): compare `collab.toml`
-   `protocol` pin to the plugin's protocol version. PATCH/MINOR drift →
-   regenerate only the core section of `AGENTS.md` (above the overlay
-   marker), update the pin, summarize what changed. MAJOR drift → show
-   the protocol's changelog for the gap and get explicit user approval
-   before touching anything.
+1. Inspect collab.toml, AGENTS.md, CLAUDE.md, and the ledger. If initialized,
+   report configuration without overwriting it. For a requested upgrade,
+   follow [migration-v2.md](../../reference/migration-v2.md). The upgrade
+   request is authorization; do not require duplicate approval.
+2. Infer roles from the request and existing records. New-project defaults
+   are Claude implementation and Codex review; either can fill either role.
+   If the user asks this Codex session to implement, configure Codex as
+   implementer and Claude as reviewer. Ask only about unresolved material
+   choices, not defaults already settled by context.
+3. Create collab.toml from templates/collab.toml.example, keeping applicable
+   agents and paths. Match `[reviewer].identity` to the selected reviewer
+   in `[roles]`; role changes must update both fields. Set the protocol pin and requested one-round review
+   unless another policy was chosen. Do not enable council stages or
+   schedules without a specified task and dependencies.
+4. Create the handoff directory and ledger if absent. Ledger entries record
+   date, Agent, scope, artifacts, findings/dispositions, and next owner.
+5. Generate AGENTS.md from templates/AGENTS.core.md. Preserve an existing
+   non-generated file intact in the project overlay. Preserve overlays on
+   upgrade. Create a minimal CLAUDE.md pointer to AGENTS.md if absent; for an
+   existing CLAUDE.md add a reference only if missing, retaining all content.
+6. Probe configured reviewer CLIs without launching them. A missing binary
+   is a capability gap, not permission to bypass controls or invent review.
+   Configure an available fallback only if it meets the user's independence
+   requirements. Do not claim credentials were tested by executable lookup.
+7. Verify TOML parses, paths agree, and generated project files have no
+   unresolved generation placeholders such as `{{OVERLAY}}`. Retain intentional
+   runtime placeholders such as `{role}`, `{run_id}`, `{repo}`, and `{output}`
+   in collab.toml. Report roles, policy, protocol, and capability gaps.
+   Initialization alone does not dispatch review.

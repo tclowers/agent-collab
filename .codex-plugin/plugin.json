@@ -1,0 +1,23 @@
+{
+  "name": "agent-collab",
+  "description": "Shared handoffs, independent review, and councils for Claude Code and Codex.",
+  "version": "0.2.0+codex.20260909220629",
+  "author": {
+    "name": "Tom Clowers"
+  },
+  "skills": "./skills/",
+  "repository": "https://github.com/tclowers/agent-collab",
+  "interface": {
+    "displayName": "Agent Collaboration",
+    "shortDescription": "Shared handoffs, independent review, and councils for Claude Code and Codex.",
+    "longDescription": "Shared handoffs, independent review, and councils for Claude Code and Codex.",
+    "developerName": "Tom Clowers",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Use $collab-init to set up agent collaboration.",
+      "Use $dispatch-review to review a handoff.",
+      "Use $collab-audit to check collaboration records."
+    ]
+  }
+}
