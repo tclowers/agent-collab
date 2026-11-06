@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dispatch Job"
+  short_description: "Dispatch and verify a one-off agent job"
+  default_prompt: "Use $dispatch-job to run a one-off job with a configured agent."

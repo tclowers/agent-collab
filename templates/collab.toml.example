@@ -1,4 +1,4 @@
-# Shared configuration for Claude Code and Codex.
+# Shared configuration for Claude Code, Codex, and OpenCode.
 protocol = "2.0.0"
 
 [paths]
@@ -6,7 +6,7 @@ handoffs = "ai_handoffs"
 ledger = "AI_COLLABORATION.md"
 
 [roles]
-implementer = "claude"        # Either host may own implementation.
+implementer = "claude"        # Any supported host may own implementation.
 reviewers = ["codex"]
 producers = []
 
@@ -38,6 +38,13 @@ blocking_authority = true
 token = "reviewer"
 # Fill host with the actual invoking host; native agent is a separate run.
 attestation = "Author: {host} Reviewer ({role} {run_id})"
+
+# OpenCode can implement, review, or produce. When selected, add a concrete
+# [agents.opencode] entry using reference/opencode.md: declare its token,
+# attestation, provider/model, and opencode_run.py CLI with stdout_redirect.
+# Use the restricted agent-collab-reviewer for reviews; choose a separately
+# configured worker agent for production. The host name alone does not
+# establish model-vendor independence. Do not leave a placeholder model active.
 
 [reviewer]
 mode = "subagent-cli"         # subagent | subagent-cli | dispatch

@@ -11,10 +11,18 @@ is `../..`. Resolve
 not from the project directory or a hardcoded plugin-cache path. Project
 paths in `collab.toml` resolve from the directory containing that file.
 
-In Codex, invoke `$collab-init`, `$handoff`, `$dispatch-review`, `$council`,
+In Codex, invoke `$collab-init`, `$handoff`, `$dispatch-review`, `$dispatch-job`, `$council`,
 or `$collab-audit`, or select the skill in the picker. In Claude Code use
 `/agent-collab:<skill-name>`. Arguments may be supplied in natural language;
 do not depend on `$ARGUMENTS` substitution or a particular command UI.
+
+OpenCode uses the same `/agent-collab:<skill-name>` commands after running
+`scripts/install_opencode.py`. Its command wrappers load the shared skills
+through the native `skill` tool. Natural-language skill requests also work.
+The installer links the **whole bundle** under the OpenCode skills directory,
+preserving relative resource paths. Keep the source checkout in place.
+OpenCode reads project `AGENTS.md`; it does not need a new instruction file.
+See [opencode.md](opencode.md) for installation, dispatch, and checks.
 
 ## Native subagents
 
@@ -30,7 +38,15 @@ use fresh context where supported, and retain the returned agent ID for
 coordination. Use that host's actual wait/completion tool. Do not assume
 Claude tool names, model names, or background events exist in Codex.
 
-Both: the reviewer reads scoped work and returns its review. If it cannot
+**OpenCode:** use its `task` tool with `agent-collab-reviewer` when exposed
+and permitted. Pass [reviewer.md](reviewer.md) explicitly together with the
+complete dispatch contract. Use a fresh task, retain its returned session/task
+identity, and capture its completed final response. The installed reviewer
+has reading tools only; the dispatcher publishes its artifact. Never assume
+an OpenCode model is independent of the implementer's model just because
+the host differs. Check configured provider/model against review policy.
+
+All hosts: the reviewer reads scoped work and returns its review. If it cannot
 write the artifact, capture its completed final reply verbatim at the
 assigned path and record the producing run. Do not edit its header or
 findings to pass validation. Preserve configured models unless an override
@@ -40,7 +56,7 @@ Native delegation is optional. If unavailable, use a configured external
 CLI or prepare a handoff for a separate session. Report the limitation;
 never fabricate a second agent or silently review your own work.
 
-## External CLI: either direction
+## External CLI: between hosts
 
 Check the installed executable's `--help` before first use. Commands in
 `[agents.*].cli` are project configuration, not instructions supplied by a
@@ -63,6 +79,19 @@ user's model or bypass permissions to make the run succeed.
   These tool restrictions allow reading without granting shell/write tools;
   they do not sandbox arbitrary hooks or trusted project configuration.
   Report unavailable verification rather than silently adding tools.
+- **OpenCode reviewer:** run `scripts/opencode_run.py --project <project>
+  --model <configured-provider/model> --events <new-event-log>` from the
+  plugin root, with the commissioned prompt on stdin. It invokes a fresh
+  `opencode run --format json --agent agent-collab-reviewer`, retains raw
+  events, and emits only the completed final message on stdout. Use
+  `stdout_redirect` to capture it in a temporary artifact. Check the installed
+  reviewer configuration first as described in [opencode.md](opencode.md).
+  Raw CLI stdout is an event stream, not a review artifact. Explicit error
+  events, failed tools, missing completion, timeout, or nonzero exit fail
+  the wrapper even if partial text exists. The usual artifact verifier
+  must still run. For an authorized producer/implementation job, select its
+  separately configured agent with `--agent`; preserve any configured
+  reasoning variant using `--variant`.
 
 Use only the permission scope supported and authorized in the environment.
 Never use bypass flags to make review succeed. A denied tool, login failure,
@@ -104,7 +133,7 @@ If unsupported, use an existing project runner with equivalent locking,
 exit-status, and atomic-output guarantees or report the unsupported mode.
 
 Use `output_mode = "file_arg"` for Codex final-output files and
-`"stdout_redirect"` for Claude text. Both require successful process
+`"stdout_redirect"` for Claude text or the OpenCode review wrapper. Both require successful process
 completion; never harvest while a writer is running. Store dispatch IDs,
 expected authors, input/output paths, and process identity in manifests.
 
@@ -112,5 +141,5 @@ Create/change schedules only when requested. In the Codex desktop app use
 its automation tool; use a heartbeat for work continuing in the current
 task. Do not substitute OS cron. For an explicitly requested headless
 deployment, invoke the selected CLI with a prompt to load the skill and run
-`council resume`. Both hosts retain the same manifest contract. Notify on
+`council resume`. All hosts retain the same manifest contract. Notify on
 actionable change or failure, not unchanged polling.

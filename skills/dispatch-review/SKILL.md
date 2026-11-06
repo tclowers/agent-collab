@@ -21,7 +21,8 @@ A protocol-major mismatch requires an authorized migration.
    work. A reviewer must not be the author of the work being evaluated.
 3. Read reviewer transport, timeout, sandbox, fallback, and escalation
    settings. A cross-vendor requirement cannot silently fall back to the same
-   family. Use an already-authorized compatible route or report the gap.
+   family. For OpenCode, check the actual provider/model, not just the host
+   name. Use an already-authorized compatible route or report the gap.
 4. Assign a fresh dispatch ID. Resolve the configured attestation using
    {role} = reviewer, {run_id} = that ID, and {host} = actual host; preserve explicit strings where
    configured. Reviewer attestations must include the dispatch ID. Derive the
@@ -34,7 +35,7 @@ A protocol-major mismatch requires an authorized migration.
 
 - subagent: use available native tools and an independent run.
 - subagent-cli: use the configured external CLI and output mode. The host
-  guide distinguishes Codex output files from Claude stdout capture.
+  guide distinguishes Codex output files, Claude stdout, and OpenCode event extraction.
 - dispatch: use the existing project runner; watch every terminal state.
   Silence, failed access, and partial output are not success.
 

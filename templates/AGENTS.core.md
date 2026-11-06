@@ -20,7 +20,7 @@ user request. User instructions take precedence over protocol defaults.
 - **Producers** ({{PRODUCER_NAMES}}) — write only their own attested
   artifacts + provenance sidecars in the flat handoff directory.
 
-Role assignments are configured in `collab.toml [roles]`; either host may
+Role assignments are configured in `collab.toml [roles]`; any supported host may
 implement or review. Record writer handovers and unfinished work explicitly.
 Historical authorship does not change with roles. A role swap does not turn
 an author's own previous work into independent review.

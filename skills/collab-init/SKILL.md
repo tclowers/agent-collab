@@ -1,6 +1,6 @@
 ---
 name: collab-init
-description: Initialize or explicitly upgrade shared Claude Code and Codex collaboration instructions, role configuration, handoff storage, and a ledger in a project.
+description: Initialize or explicitly upgrade shared Claude Code, Codex, and OpenCode collaboration instructions, role configuration, handoff storage, and a ledger in a project.
 ---
 
 # Initialize collaboration
@@ -14,9 +14,13 @@ Resolve templates from the plugin root, not the target working directory.
    follow [migration-v2.md](../../reference/migration-v2.md). The upgrade
    request is authorization; do not require duplicate approval.
 2. Infer roles from the request and existing records. New-project defaults
-   are Claude implementation and Codex review; either can fill either role.
-   If the user asks this Codex session to implement, configure Codex as
-   implementer and Claude as reviewer. Ask only about unresolved material
+   are Claude implementation and Codex review when no host is assigned.
+   Any supported host can fill either role. If the user asks the current
+   session to implement, use its actual host as implementer and preserve a
+   requested reviewer; otherwise select an available independent reviewer
+   consistent with project policy. If OpenCode is assigned a role, declare its
+   identity and actual provider/model separately; the host name is not a model
+   vendor. OpenCode reads AGENTS.md directly. Ask only about unresolved material
    choices, not defaults already settled by context.
 3. Create collab.toml from templates/collab.toml.example, keeping applicable
    agents and paths. Match `[reviewer].identity` to the selected reviewer

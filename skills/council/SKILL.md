@@ -79,5 +79,5 @@ with artifact paths. Read-only.
 
 Running a council does not create a schedule. For a requested schedule,
 follow the host guide: Codex app automation for ongoing app tasks, or a
-separately authorized headless deployment. Both Claude Code and Codex may
+separately authorized headless deployment. Claude Code, Codex, and OpenCode may
 invoke resume against the same manifests. Keep unchanged monitoring quiet.

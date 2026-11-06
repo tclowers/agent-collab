@@ -1,6 +1,6 @@
 # collab-protocol 2.0.0
 
-The shared contract for AI-to-AI collaboration in Claude Code and Codex.
+The shared contract for AI-to-AI collaboration in Claude Code, Codex, and OpenCode.
 One configured agent owns implementation for a work cycle; independent
 agents review, produce, or advise. Host mechanics live in [hosts.md](hosts.md).
 User instructions and authorization take precedence over protocol defaults.
@@ -25,7 +25,7 @@ Existing artifacts retain their original author and protocol; never relabel them
 ## 1. Roles
 
 - **Implementer** — exactly one configured agent owns edits and state
-  changes for the agreed scope. Either Claude or Codex may fill this role.
+  changes for the agreed scope. Claude Code, Codex, or OpenCode may fill this role.
   Owns implementation, validation, and authorized integration. Read-only
   commands are available to reviewers; role assignment does not expand
   execution permissions or authorize publishing/commits by itself.
@@ -177,8 +177,9 @@ disposition apply identically whichever mechanism runs the reviewer.
   host. Use a distinct run ID. Preserve configured model settings; a model
   override is optional and must be explicitly configured or requested.
 - **`subagent-cli`** — subagent (or background shell) wrapping an
-  external vendor CLI (e.g. `codex exec`, `grok -p`). Cross-vendor
-  independence with process exit and output capture. Installation alone
+  external CLI (e.g. `codex exec`, `claude -p`, `opencode run`).
+  Process isolation does not by itself establish cross-vendor independence:
+  record the actual provider/model, especially for multi-provider hosts. Installation alone
   does not establish authentication or permissions. Configure both directions
   and report a missing capability; never bypass permission controls to retry.
 - **`dispatch`** — a project-provided detached job runner (own audit
