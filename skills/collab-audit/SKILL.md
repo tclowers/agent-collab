@@ -41,6 +41,12 @@ upgrade path before further reviews); MINOR/PATCH → note. Also flag
 artifacts whose `Protocol:` header claims a version newer than the
 pin.
 
+For dynamic roles, check the mode/protocol combination and conflicting static
+pins against [review-routing.md](../../reference/review-routing.md). Audit each
+cycle against its recorded writer, reviewer, selection source and actual run,
+not today's preferred list. Missing resolution evidence is a provenance gap;
+do not invent it or reinterpret historical fixed-role records.
+
 ## 4. Council health (when configured)
 
 Stale manifests (dead pid, no artifact, past timeout), orphan

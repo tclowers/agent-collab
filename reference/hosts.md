@@ -26,6 +26,14 @@ See [opencode.md](opencode.md) for installation, dispatch, and checks.
 
 ## Native subagents
 
+For a new review, first resolve cycle roles using
+[review-routing.md](review-routing.md) and `scripts/resolve_review.py`. The selected
+agent supplies the invocation identity and command; `[reviewer]` supplies the
+transport/permissions/timeout. Map an explicit model override to that host's
+supported arguments after checking installed help, and retain it in the dispatch
+record. Resume uses the recorded selection. Neither native nor external transport
+may silently substitute a different reviewer for an explicit request.
+
 **Claude Code:** when its Agent tool is available, use the packaged
 `adversarial-reviewer` agent. Supply the handoff, scope, expected Author
 line, dispatch ID, output path, and project root. Use the actual completion

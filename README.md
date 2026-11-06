@@ -3,7 +3,7 @@
 Shared collaboration commands for **Codex, Claude Code, and OpenCode**: initialize a
 project, write handoffs, dispatch independent reviews, audit collaboration
 records, and run a configured council. Any supported host can own implementation;
-roles and review policy live in the project, with one writer per scope.
+review routing and policy live in the project, with one writer per scope.
 
 ## Commands
 
@@ -21,6 +21,30 @@ reviews, one round, and no automatic review after fixes. Creating a handoff
 alone does not commission a reviewer. Existing project policies survive
 migration unless the user changes them.
 
+## Dynamic writer/reviewer cycles
+
+New projects need no permanent writer/reviewer assignment. The agent initiating
+the review handoff owns the writer role for that cycle. By default, Claude asks
+Codex to review and Codex asks Claude. The ordered preference list is configurable:
+
+```toml
+[roles]
+mode = "dynamic"
+preferred_reviewers = ["claude", "codex"]
+producers = []
+```
+
+An explicit request such as “dispatch a review from Claude” or a uniquely
+configured model takes precedence for that cycle. An agent outside the pair
+uses the first eligible preferred reviewer; known matching model families are
+excluded from default selection. Requested reviewers are never silently replaced
+on failure. Reviewer runs remain independent and read-only.
+
+[Review routing](reference/review-routing.md) covers model aliases, the
+deterministic resolver, pinned identities on resume, and migration. Existing
+projects without `roles.mode` retain their fixed assignments until an authorized
+upgrade. Producer jobs and explicitly assigned council stages keep their roles.
+
 ## Install
 
 ### Codex
@@ -36,10 +60,10 @@ For a local checkout already registered in a personal marketplace, use
 `codex plugin add agent-collab@personal` instead.
 
 Open a new Codex task to discover the installed skills. Then use
-`$collab-init` in the intended project, specifying roles if desired:
+`$collab-init` in the intended project:
 
 ```text
-$collab-init Set up this project with Codex implementing and Claude reviewing.
+$collab-init Set up this project with dynamic review roles.
 ```
 
 Install the whole plugin: its skills share `reference/`, `templates/`, and
@@ -87,6 +111,9 @@ agent and implementation jobs require an explicit writer handover.
   all host adapters.
 - [Project configuration](templates/collab.toml.example): roles, agent
   commands, output modes, guards, and optional council stages.
+- [Review resolver](scripts/resolve_review.py): selects the initiating writer
+  and requested/default reviewer without changing configuration or dispatching
+  an agent (Python 3.11+).
 - [Artifact validator](scripts/verify_artifact.py): rejects missing,
   partial, misattributed, or stale-run replies. Header and size checks do
   not establish substantive quality or cryptographically prove authorship.
@@ -103,12 +130,16 @@ schedule. Requested Codex app schedules use the app's automation tools.
 
 ## Versions and existing projects
 
-Plugin version **0.3.0** implements **collab-protocol 2.0.0**. Codex local
+Plugin version **0.3.1** implements **collab-protocol 2.1.0**. Codex local
 reinstalls may append build metadata to the plugin version for cache refresh.
 Projects pin their protocol in `collab.toml`. Installing the plugin does
 not modify or migrate existing projects.
 
-The major protocol change adds explicit role and review-policy semantics.
+Protocol 2.1 adds optional dynamic routing while preserving 2.0 fixed-role
+configurations. Installing this release does not change an existing project's
+writer or reviewer. Request a `collab-init` upgrade to adopt the new defaults.
+
+The earlier major protocol change adds explicit role and review-policy semantics.
 Use the [migration guide](reference/migration-v2.md) when intentionally
 upgrading a 1.x project. Preserve project overlays, historical attestations,
 and existing review requirements; never relabel old artifacts.

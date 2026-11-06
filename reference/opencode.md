@@ -60,8 +60,12 @@ Replace the example path/model during initialization. `{model}` comes from
 the selected agent configuration; `{output}` is the per-dispatch temporary
 artifact path. Resolve all runtime placeholders before execution and pass
 arguments as an array, or quote each substituted value individually.
-Set `[roles].reviewers` and `[reviewer].identity` together when selecting it.
-Keep other configured reviewers and existing policy as requested.
+In dynamic mode, put the agent key in `roles.preferred_reviewers` when it should
+be a default candidate, or select it in an explicit review request. Add its known
+`model_family` (for example `claude` or `gpt`) so default selection can avoid the
+writer's family. Do not pin `reviewer.identity` in dynamic mode. Legacy fixed mode
+keeps `[roles].reviewers` and `[reviewer].identity` together. See
+[review-routing.md](review-routing.md); preserve other reviewers and review policy.
 
 Send the complete reviewer contract and reference/reviewer.md on stdin.
 Use the project timeout for the wrapper's `--timeout`; use `--variant` only
@@ -73,7 +77,8 @@ only the final normally completed message, and excludes earlier tool-step
 commentary. Capture stderr separately. After successful wrapper exit,
 validate the temporary reply using verify_artifact.py and atomically publish
 it. Retain the event log with the dispatch record. No text or identity is
-rewritten to make validation pass. The protocol remains 2.0.0.
+rewritten to make validation pass. Use the project's protocol pin; dynamic roles
+use 2.1.0 and legacy fixed projects can retain 2.0.0.
 
 ## Driver, one-off jobs, and councils
 

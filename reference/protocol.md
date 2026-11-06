@@ -1,4 +1,4 @@
-# collab-protocol 2.0.0
+# collab-protocol 2.1.0
 
 The shared contract for AI-to-AI collaboration in Claude Code, Codex, and OpenCode.
 One configured agent owns implementation for a work cycle; independent
@@ -22,6 +22,11 @@ policy, and portable reply verification. This changes write-role and review
 semantics: migrate 1.x projects deliberately using [migration-v2.md](migration-v2.md).
 Existing artifacts retain their original author and protocol; never relabel them.
 
+**2.1.0** (2026-11-06) — additive dynamic review-cycle roles and ordered
+reviewer preferences. New projects use the initiating writer and an explicit
+reviewer request or the other preferred agent. Legacy fixed assignments remain
+valid; adoption is explicit. See [review-routing.md](review-routing.md).
+
 ## 1. Roles
 
 - **Implementer** — exactly one configured agent owns edits and state
@@ -36,12 +41,19 @@ Existing artifacts retain their original author and protocol; never relabel them
 - **Producer(s)** — generate surveys/ideation/data artifacts. Write
   only their own attested artifacts (+ provenance sidecars).
 
-Role assignment lives in `collab.toml [roles]`; `[agents.*]` describes
-identity and invocation, not permanent rank. Default: Claude implements and
-Codex reviews, unless the current request assigns otherwise. A handover
-records the old/new writer, scope, revision, unfinished work, and open
-findings before ownership changes. Do not run two writers over the same
-scope. An agent's own previous work is not independent review after a role swap.
+Role selection lives in `collab.toml [roles]`; `[agents.*]` describes
+identity and invocation, not permanent rank. New projects use `mode = "dynamic"`:
+the review-handoff initiator is the writer for the cycle, and an explicit reviewer
+request wins over the ordered `preferred_reviewers` (default `["claude", "codex"]`).
+Without an explicit request choose the first other eligible agent. Follow
+[review-routing.md](review-routing.md) for model routing, independence checks,
+the resolver and dispatch-record fields. An absent mode or `mode = "fixed"`
+preserves legacy assignments; installing the plugin does not migrate a project.
+
+A handover records the old/new writer, scope, revision, unfinished work, and open
+findings before ownership changes. Dynamic selection does not seize active work
+or change historical authorship. Do not run two writers over the same scope.
+An agent's own previous work is not independent review after a role swap.
 
 ## 2. Artifact layout — ONE flat directory
 
@@ -145,7 +157,9 @@ positions and evidence in the ledger; the human operator decides.
 
 ## 5. Review loop
 
-1. **Scope** — identify the exact change set under review.
+1. **Scope** — identify the exact change set under review and resolve the cycle's
+   writer/reviewer from the current request and configured routing policy. Retain
+   those identities on resume; do not recompute them from the resuming host.
 2. **Handoff** — implementer authors an attested handoff: context,
    per-change semantics, tests run, "push back on" (3-6 specific
    questions naming uncertain seams), and deferred/out-of-scope items

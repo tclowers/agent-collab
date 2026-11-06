@@ -1,14 +1,16 @@
 # Shared configuration for Claude Code, Codex, and OpenCode.
-protocol = "2.0.0"
+protocol = "2.1.0"
 
 [paths]
 handoffs = "ai_handoffs"
 ledger = "AI_COLLABORATION.md"
 
 [roles]
-implementer = "claude"        # Any supported host may own implementation.
-reviewers = ["codex"]
+mode = "dynamic"             # Review-handoff initiator owns the writer role.
+preferred_reviewers = ["claude", "codex"] # Explicit request wins; otherwise first other eligible agent.
 producers = []
+# Legacy mode = "fixed" keeps implementer/reviewers plus reviewer.identity.
+# Do not include those static pins in dynamic mode. See reference/review-routing.md.
 
 [review_policy]
 trigger = "requested"         # requested | completion (explicit opt-in)
@@ -22,6 +24,7 @@ min_bytes = 200
 # artifact headers when these settings change.
 [agents.claude]
 token = "claude"
+model_family = "claude"
 attestation = "Author: Claude Code ({role} {run_id})"
 cli = """claude -p --output-format text --tools Read,Grep,Glob --permission-mode plan --strict-mcp-config --mcp-config '{"mcpServers":{}}'"""
 output_mode = "stdout_redirect"
@@ -29,6 +32,7 @@ blocking_authority = true
 
 [agents.codex]
 token = "codex"
+model_family = "gpt"
 attestation = "Author: Codex ({role} {run_id})"
 cli = "codex exec --skip-git-repo-check -s {sandbox} -C {repo} -o {output} -"
 output_mode = "file_arg"
@@ -48,12 +52,17 @@ attestation = "Author: {host} Reviewer ({role} {run_id})"
 
 [reviewer]
 mode = "subagent-cli"         # subagent | subagent-cli | dispatch
-identity = "codex"            # Change together with roles when reversing.
-fallback = "reviewer"         # Only if native tools exist and policy permits.
+# Identity comes from per-cycle resolution, not a permanent assignment.
+# A transport fallback must retain the selected reviewer/model; never silently
+# replace an explicit request with another identity.
 sandbox = "read-only"
 timeout_sec = 1800
 escalate = []                 # Optional classes requiring cross-vendor review.
 # Existing project runners may supply dispatch_cmd and dispatch_watch.
+
+# Optional agents.<key>.aliases = ["my-reviewer"] and model = "provider/model"
+# map explicit requests to configured routes. Record actual models at dispatch;
+# an agent host name alone does not prove model-vendor independence.
 
 # CLI examples above are for review. Customize capabilities deliberately for
 # producer stages. Never infer permission to run an implementation agent from

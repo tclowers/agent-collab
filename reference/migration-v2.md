@@ -26,3 +26,13 @@ choices not inferable from the request or project records.
 Audit historical artifacts using the protocol/configuration applicable when
 authored, not by treating every old role string as invalid today.
 
+## Optional adoption of dynamic roles (2.1)
+
+The steps above preserve fixed assignments when migrating 1.x to 2.0. A request
+to adopt dynamic cycles additionally follows [review-routing.md](review-routing.md):
+set protocol 2.1.0 and `roles.mode = "dynamic"`, choose the ordered preferred list
+(default Claude/Codex), and remove static implementer/reviewer pins. Preserve
+review policy and in-flight cycle identities. A 2.0 project can take this additive
+upgrade directly. Update generated instructions, retain project overlays and
+record the migration; never reinterpret historical roles.
+

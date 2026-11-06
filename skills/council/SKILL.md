@@ -25,6 +25,8 @@ Before run/resume, validate an acyclic dependency graph, existing prompt
 files, declared agents, unique output paths, and the required POSIX runtime.
 For a new cycle require fresh output paths; never reuse existing artifacts
 as new results or overwrite them. Do not dispatch when those checks fail. Preserve the actual host's permissions.
+Explicit council stage agents remain authoritative; dynamic review defaults
+do not reassign stages or change identities when another host resumes.
 
 ## `status`
 

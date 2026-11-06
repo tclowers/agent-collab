@@ -1,7 +1,7 @@
 {
   "name": "agent-collab",
   "description": "Shared handoffs, one-off jobs, independent review, and councils for Claude Code, Codex, and OpenCode.",
-  "version": "0.3.0+codex.20261006174626",
+  "version": "0.3.1",
   "author": {
     "name": "Tom Clowers"
   },

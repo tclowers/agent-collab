@@ -13,23 +13,34 @@ A protocol-major mismatch requires an authorized migration.
 
 ## Prepare
 
-1. Establish the exact handoff/revision, current implementer, requested
-   reviewer, and review_policy. Creating a handoff alone does not request
-   delegation. Default: one requested round.
+1. Establish the exact handoff/revision and review_policy. For a new cycle,
+   resolve writer/reviewer using [review-routing.md](../../reference/review-routing.md)
+   and `scripts/resolve_review.py`: the initiator writes in dynamic mode, an
+   explicit reviewer/model request wins, otherwise select the other preferred
+   agent. Retain the resolution in the dispatch record. On resume use recorded
+   cycle identities, not the resuming host. Legacy fixed configurations keep
+   their assignments. Creating a handoff alone does not request delegation.
+   Default: one requested round.
 2. Verify the input's attestation and scope. If the current author must fix
    their handoff, use the sibling handoff skill; never sign another agent's
-   work. A reviewer must not be the author of the work being evaluated.
+   work. Record any writer handover before claiming ownership of active work.
+   The reviewer must be a fresh run independent of the writing session; preserve
+   original authorship and check model-family requirements.
 3. Read reviewer transport, timeout, sandbox, fallback, and escalation
    settings. A cross-vendor requirement cannot silently fall back to the same
    family. For OpenCode, check the actual provider/model, not just the host
-   name. Use an already-authorized compatible route or report the gap.
+   name. Preserve an explicitly requested model and use its selected agent's
+   command, not a stale reviewer.identity. Check supported model override syntax
+   in installed help. Never silently substitute a different reviewer/model on
+   failure; use an already-authorized compatible route or report the gap.
 4. Assign a fresh dispatch ID. Resolve the configured attestation using
    {role} = reviewer, {run_id} = that ID, and {host} = actual host; preserve explicit strings where
    configured. Reviewer attestations must include the dispatch ID. Derive the
    reply filename from the actual author token.
 5. Supply the handoff, source scope, exact reply path, expected Author line,
    and [reviewer instructions](../../reference/reviewer.md). Keep a dispatch
-   record binding those values to the actual completed agent/process.
+   record binding those values to the actual completed agent/process, resolved
+   writer and reviewer identities, selection source, and requested/actual models.
 
 ## Execute and verify
 

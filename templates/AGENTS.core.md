@@ -20,8 +20,12 @@ user request. User instructions take precedence over protocol defaults.
 - **Producers** ({{PRODUCER_NAMES}}) — write only their own attested
   artifacts + provenance sidecars in the flat handoff directory.
 
-Role assignments are configured in `collab.toml [roles]`; any supported host may
-implement or review. Record writer handovers and unfinished work explicitly.
+Resolve roles per `collab.toml [roles]`. In dynamic mode the review-handoff
+initiator is writer; an explicit reviewer request wins, otherwise choose the first
+other eligible `preferred_reviewers` agent. Use the plugin's review-routing guide
+and resolver, record the choice, and preserve it on resume. Absent mode or fixed
+mode retains configured assignments. No permanent pairing is needed in dynamic
+mode. Record writer handovers and unfinished work explicitly.
 Historical authorship does not change with roles. A role swap does not turn
 an author's own previous work into independent review.
 

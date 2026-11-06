@@ -12,7 +12,11 @@ from collab.toml. A missing config is not permission to initialize.
 ## Procedure
 
 1. Read `collab.toml` (paths, roles, attestation, protocol pin). Use the
-   actual writer identity and a fresh invocation ID. Resolve {role}, {run_id},
+   actual writer identity and a fresh invocation ID. In dynamic mode the
+   review-handoff initiator owns this cycle; follow
+   [review-routing.md](../../reference/review-routing.md), retaining active-cycle
+   ownership on resume and recording any handover. A handoff can be written
+   before a reviewer is available; it never dispatches by itself. Resolve {role}, {run_id},
    and {host} when present in the configured attestation. Never relabel
    another agent's work or change historical headers after a role swap.
 2. Derive the path: `<handoffs>/<UTC-ts>-<your-token>-<topic>[-rN].md`
